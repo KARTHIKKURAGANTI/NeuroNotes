@@ -1,6 +1,7 @@
 from fastapi import FastAPI,Path,Query
-from schemas import NoteCreate, NoteResponse
-
+from .schemas import NoteCreate, NoteResponse
+from typing import List
+from fastapi import HTTPException,status
 app = FastAPI()
 notes_db = []  # In-memory database for notes
 
@@ -19,46 +20,32 @@ def home():
         "message" : "Welcome to Neuronotes API"
     }
 
-@app.post("/notes")
+@app.post("/notes",response_model=NoteResponse,status_code=201)
 def create_note(note: NoteCreate):
     new_note={
-        "id" : len(notes_db),
+        "id" : len(notes_db)+1,
         "title" : note.title,
-        "content" : note.content
+        "content" : note.content,
+        "tag": note.summary
     }
-    notes_db.append(note)
-    return {
-        "message" : "Note created successfully",
-        "note" : note
-    }
+    notes_db.append(new_note)
+    return new_note
 
-@app.get("/notes")
+@app.get("/notes",response_model=List[NoteResponse])
 def get_recent_notes(limit: int = Query(gt=0,lt=15,default=10)):
-    return {
-        "message" : "Recent notes retrieved successfully",
-        "notes": notes_db[:limit]   
+    return notes_db[:limit]
 
-        }
-
-@app.get("/notes/{note_id}")
+@app.get("/notes/{note_id}",response_model=NoteResponse)
 def get_notes(note_id: int):
     for note in notes_db:
-        if note.id == note_id:
-            return {
-                "note" : note
-            }
-    return {
-        "message" : "Note not found"
-    }
+        if note["id"] == note_id:
+            return note
+    raise HTTPException(status_code=404,detail="Note not found")  
 
-@app.delete("notes/{note_id}")
+@app.delete("/notes/{note_id}",status_code=204)
 def delete_note(note_id: int):
     for index,note in enumerate(notes_db):
-        if note.id == note_id:
+        if note["id"] == note_id:
             del notes_db[index]
-            return {
-                "message" : "Note deleted successfully"
-            }
-    return {
-        "message" : "Note not found"    
-    }
+            return 
+    raise HTTPException(status_code=404,detail="Note not found")
