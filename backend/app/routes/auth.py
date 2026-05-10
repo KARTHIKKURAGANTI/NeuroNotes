@@ -36,3 +36,23 @@ def register_user(
     db.refresh(new_user)
 
     return new_user
+
+@router.post("/login")
+def login_user(credentials: schemas.UserLogin, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(
+        models.User.email == credentials.email
+    ).first()
+
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid email or inactive account"
+        )
+
+    if not hash_password(credentials.password) == user.password:
+        raise HTTPException(
+            status_code=400,
+            detail="Incorrect password"
+        )
+
+    return {"msg": "Login successful"}
