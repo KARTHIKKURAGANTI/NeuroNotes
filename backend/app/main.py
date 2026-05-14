@@ -2,6 +2,11 @@ from fastapi import FastAPI,Path,Query
 from .schemas import NoteCreate, NoteResponse
 from typing import List
 from fastapi import HTTPException,status
+from . import models
+from .database import engine, SessionLocal
+
+models.Base.metadata.create_all(bind=engine)
+
 app = FastAPI()
  
 from app.routes import notes
@@ -23,6 +28,7 @@ def health():
 @app.get("/")
 def home():
     return {
+
         "message" : "Welcome to Neuronotes API"
     }
 
